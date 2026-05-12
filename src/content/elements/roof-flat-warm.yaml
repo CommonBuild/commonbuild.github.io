@@ -1,0 +1,50 @@
+name: Flat Roof — Warm Deck
+ifc_class: IfcRoof
+description: >
+  Warm flat roof assembly with EPDM waterproofing membrane on PIR insulation.
+  Insulation placed above the structural deck keeps the structure warm and
+  eliminates the risk of interstitial condensation.
+total_thickness_mm: 410
+u_value: 0.13
+fire_rating: REI 30
+tags:
+  - roof
+  - flat-roof
+  - warm-deck
+  - timber
+layers:
+  - position: 1
+    name: EPDM waterproofing membrane
+    material: EPDM 1.5mm
+    thickness_mm: 1.5
+    function: waterproofing
+  - position: 2
+    name: Protection board
+    material: Fibreboard
+    thickness_mm: 12
+    function: protection
+  - position: 3
+    name: PIR insulation — upper
+    material: PIR rigid board
+    thickness_mm: 100
+    function: insulation
+  - position: 4
+    name: PIR insulation — lower
+    material: PIR rigid board
+    thickness_mm: 100
+    function: insulation
+  - position: 5
+    name: Vapour control layer
+    material: Aluminium foil VCL
+    thickness_mm: 0.1
+    function: moisture control
+  - position: 6
+    name: Structural timber deck
+    material: Cross-laminated timber (CLT) 5-ply
+    thickness_mm: 160
+    function: structural
+  - position: 7
+    name: Interior gypsum board
+    material: Gypsum board
+    thickness_mm: 12.5
+    function: finish

@@ -1,0 +1,50 @@
+name: Concrete Floor Slab 200mm
+ifc_class: IfcSlab
+description: >
+  Reinforced concrete floor slab with underfloor insulation, screed,
+  and timber finish. Common ground floor assembly for passive house
+  and low-energy construction.
+total_thickness_mm: 380
+u_value: 0.15
+fire_rating: REI 120
+tags:
+  - floor
+  - concrete
+  - ground-floor
+  - passive-house
+layers:
+  - position: 1
+    name: Timber flooring
+    material: Engineered oak
+    thickness_mm: 14
+    function: finish
+  - position: 2
+    name: Screed
+    material: Cement screed
+    thickness_mm: 60
+    function: structural
+  - position: 3
+    name: Underfloor heating pipes
+    material: PEX pipe in screed
+    thickness_mm: 0
+    function: services
+  - position: 4
+    name: EPS insulation
+    material: EPS 150
+    thickness_mm: 100
+    function: insulation
+  - position: 5
+    name: Waterproof membrane
+    material: PE foil
+    thickness_mm: 0.2
+    function: moisture control
+  - position: 6
+    name: Structural slab
+    material: Reinforced concrete C25/30
+    thickness_mm: 200
+    function: structural
+  - position: 7
+    name: Lean concrete blinding
+    material: Plain concrete C12/15
+    thickness_mm: 50
+    function: structural

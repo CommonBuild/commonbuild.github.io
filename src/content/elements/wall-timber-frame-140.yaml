@@ -1,0 +1,40 @@
+name: Timber Frame Wall 140mm
+ifc_class: IfcWall
+description: >
+  Standard timber frame exterior wall with mineral wool insulation,
+  OSB sheathing, and gypsum board interior finish. Suitable for
+  low-energy residential construction.
+total_thickness_mm: 215
+u_value: 0.21
+fire_rating: REI 60
+tags:
+  - exterior
+  - timber
+  - residential
+  - low-energy
+layers:
+  - position: 1
+    name: Exterior render
+    material: Lime render
+    thickness_mm: 15
+    function: finish
+  - position: 2
+    name: Wood fibre insulation board
+    material: Wood fibre board
+    thickness_mm: 40
+    function: insulation
+  - position: 3
+    name: OSB sheathing
+    material: OSB/3
+    thickness_mm: 15
+    function: structural
+  - position: 4
+    name: Timber studs + mineral wool
+    material: Mineral wool between 140×45 studs
+    thickness_mm: 140
+    function: structural + insulation
+  - position: 5
+    name: Interior gypsum board
+    material: Gypsum board
+    thickness_mm: 12.5
+    function: finish
