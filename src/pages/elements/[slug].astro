@@ -1,6 +1,7 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import LayerStack3D from '../../components/LayerStack3D.astro';
 
 export async function getStaticPaths() {
 	const elements = await getCollection('elements');
@@ -52,7 +53,17 @@ function fnClass(fn: string) {
 	</div>
 
 	<h2>Layer Stack</h2>
-	<p>Listed from exterior (position 1) to interior.</p>
+	<p>Listed from exterior (position 1) to interior. Layer thickness is drawn to scale.</p>
+	<LayerStack3D layers={data.layers} id={element.id} />
+	<div class="viewer-legend">
+		<div class="viewer-legend-item"><span class="viewer-legend-swatch" style="background:#4ade80"></span>Finish</div>
+		<div class="viewer-legend-item"><span class="viewer-legend-swatch" style="background:#fbbf24"></span>Insulation</div>
+		<div class="viewer-legend-item"><span class="viewer-legend-swatch" style="background:#60a5fa"></span>Structural</div>
+		<div class="viewer-legend-item"><span class="viewer-legend-swatch" style="background:#a78bfa"></span>Moisture control</div>
+		<div class="viewer-legend-item"><span class="viewer-legend-swatch" style="background:#22d3ee"></span>Waterproofing</div>
+		<div class="viewer-legend-item"><span class="viewer-legend-swatch" style="background:#f472b6"></span>Protection</div>
+		<div class="viewer-legend-item"><span class="viewer-legend-swatch" style="background:#94a3b8"></span>Services</div>
+	</div>
 
 	<table class="layer-table">
 		<thead>
@@ -62,6 +73,8 @@ function fnClass(fn: string) {
 				<th>Material</th>
 				<th>Thickness</th>
 				<th>Function</th>
+				<th>Supplier</th>
+				<th>Price (excl. VAT)</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -72,6 +85,16 @@ function fnClass(fn: string) {
 					<td>{layer.material}</td>
 					<td>{layer.thickness_mm > 0 ? `${layer.thickness_mm} mm` : '—'}</td>
 					<td><span class={`tag ${fnClass(layer.function)}`}>{layer.function}</span></td>
+					<td>
+						{layer.supplier && layer.supplier_url
+							? <a href={layer.supplier_url} target="_blank" rel="noopener">{layer.supplier}</a>
+							: layer.supplier ?? '—'}
+					</td>
+					<td>
+						{layer.price != null
+							? `€${layer.price.toFixed(2)} ${layer.price_unit ?? ''}`
+							: '—'}
+					</td>
 				</tr>
 			))}
 		</tbody>

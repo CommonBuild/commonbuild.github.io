@@ -17,6 +17,21 @@ export default defineConfig({
 					label: 'Element Library',
 					items: [
 						{ label: 'All Elements', link: '/elements/' },
+						{
+							label: 'Walls',
+							items: [
+								{ label: 'External Walls', link: '/elements/?category=walls&sub=external' },
+								{ label: 'Internal Walls', link: '/elements/?category=walls&sub=internal' },
+							],
+						},
+						{ label: 'Floors', link: '/elements/?category=floors' },
+						{
+							label: 'Roofs',
+							items: [
+								{ label: 'Flat Roofs', link: '/elements/?category=roofs&sub=flat' },
+								{ label: 'Sloped Roofs', link: '/elements/?category=roofs&sub=sloped' },
+							],
+						},
 					],
 				},
 				{

@@ -2,42 +2,73 @@
 import { getCollection } from 'astro:content';
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 
-const elements = await getCollection('elements');
-elements.sort((a, b) => a.data.name.localeCompare(b.data.name));
+const all = await getCollection('elements');
+all.sort((a, b) => a.data.name.localeCompare(b.data.name));
+
+const structure = [
+	{ category: 'walls',  label: 'Walls',  subs: [{ key: 'external', label: 'External Walls' }, { key: 'internal', label: 'Internal Walls' }] },
+	{ category: 'floors', label: 'Floors', subs: [] },
+	{ category: 'roofs',  label: 'Roofs',  subs: [{ key: 'flat', label: 'Flat Roofs' }, { key: 'sloped', label: 'Sloped Roofs' }] },
+] as const;
+
+type Category = typeof structure[number]['category'];
+type Subcategory = 'external' | 'internal' | 'flat' | 'sloped';
+
+function byCategory(cat: Category, sub?: Subcategory) {
+	return all.filter(el =>
+		el.data.category === cat && (sub ? el.data.subcategory === sub : true)
+	);
+}
 ---
 
-<StarlightPage frontmatter={{ title: 'Element Library', description: 'All documented building elements with layerset specifications.' }}>
-	<p>
-		Browse all building elements below. Each entry includes the full layer stack,
-		thermal performance (U-value), fire rating, and IFC classification.
-	</p>
+<StarlightPage frontmatter={{ title: 'Element Library', description: 'Building elements organised by category, with layerset specifications and thermal performance data.' }}>
+	<p>Browse all documented building elements below. Each entry includes the full layer stack, U-value, fire rating, and IFC classification.</p>
 
-	<table class="element-table">
-		<thead>
-			<tr>
-				<th>Element</th>
-				<th>IFC Class</th>
-				<th>Thickness</th>
-				<th>U-value</th>
-				<th>Fire rating</th>
-				<th>Tags</th>
-			</tr>
-		</thead>
-		<tbody>
-			{elements.map((el) => (
-				<tr>
-					<td><a href={`/elements/${el.id}/`}>{el.data.name}</a></td>
-					<td><code>{el.data.ifc_class}</code></td>
-					<td>{el.data.total_thickness_mm} mm</td>
-					<td>{el.data.u_value} W/m²K</td>
-					<td>{el.data.fire_rating}</td>
-					<td>
-						{el.data.tags.map((tag) => (
-							<span class="tag">{tag}</span>
-						))}
-					</td>
-				</tr>
-			))}
-		</tbody>
-	</table>
+	{structure.map(({ category, label, subs }) => {
+		const topLevel = byCategory(category);
+		if (topLevel.length === 0) return null;
+		return (
+			<section>
+				<h2>{label}</h2>
+				{subs.length > 0 ? subs.map(({ key, label: subLabel }) => {
+					const items = byCategory(category, key as Subcategory);
+					if (items.length === 0) return null;
+					return (
+						<>
+							<h3>{subLabel}</h3>
+							<table class="element-table">
+								<thead><tr><th>Element</th><th>IFC Class</th><th>Thickness</th><th>U-value</th><th>Fire rating</th></tr></thead>
+								<tbody>
+									{items.map(el => (
+										<tr>
+											<td><a href={`/elements/${el.id}/`}>{el.data.name}</a></td>
+											<td><code>{el.data.ifc_class}</code></td>
+											<td>{el.data.total_thickness_mm} mm</td>
+											<td>{el.data.u_value} W/m²K</td>
+											<td>{el.data.fire_rating}</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</>
+					);
+				}) : (
+					<table class="element-table">
+						<thead><tr><th>Element</th><th>IFC Class</th><th>Thickness</th><th>U-value</th><th>Fire rating</th></tr></thead>
+						<tbody>
+							{topLevel.map(el => (
+								<tr>
+									<td><a href={`/elements/${el.id}/`}>{el.data.name}</a></td>
+									<td><code>{el.data.ifc_class}</code></td>
+									<td>{el.data.total_thickness_mm} mm</td>
+									<td>{el.data.u_value} W/m²K</td>
+									<td>{el.data.fire_rating}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				)}
+			</section>
+		);
+	})}
 </StarlightPage>

@@ -1,4 +1,5 @@
 name: Concrete Floor Slab 200mm
+category: floors
 ifc_class: IfcSlab
 description: >
   Reinforced concrete floor slab with underfloor insulation, screed,

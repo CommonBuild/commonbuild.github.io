@@ -1,4 +1,6 @@
 name: Timber Frame Wall 140mm
+category: walls
+subcategory: external
 ifc_class: IfcWall
 description: >
   Standard timber frame exterior wall with mineral wool insulation,
@@ -30,9 +32,13 @@ layers:
     function: structural
   - position: 4
     name: Timber studs + mineral wool
-    material: Mineral wool between 140×45 studs
+    material: KVH 45×140 studs with mineral wool
     thickness_mm: 140
     function: structural + insulation
+    supplier: Eurabo
+    supplier_url: https://www.eurabo.be/nl/producten/kvh-vuren-pefc-nv
+    price: 4.58
+    price_unit: /lm
   - position: 5
     name: Interior gypsum board
     material: Gypsum board

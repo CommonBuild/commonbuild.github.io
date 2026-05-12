@@ -1,4 +1,6 @@
 name: Flat Roof — Warm Deck
+category: roofs
+subcategory: flat
 ifc_class: IfcRoof
 description: >
   Warm flat roof assembly with EPDM waterproofing membrane on PIR insulation.
