@@ -24,6 +24,8 @@ jobs:
         with:
           node-version: 22
 
+      - run: pip3 install pyyaml ifcopenshell
+
       - run: npm install
 
       - run: npm run build

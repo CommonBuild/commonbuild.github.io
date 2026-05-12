@@ -1,3 +1,18 @@
+/* IFC download button */
+.ifc-download-btn {
+	display: inline-block;
+	padding: 0.5rem 1.2rem;
+	background: var(--sl-color-accent);
+	color: #fff !important;
+	border-radius: 0.4rem;
+	text-decoration: none;
+	font-weight: 600;
+	font-size: 0.9rem;
+}
+.ifc-download-btn:hover {
+	background: var(--sl-color-accent-high);
+}
+
 /* Element library table */
 .element-table {
 	width: 100%;

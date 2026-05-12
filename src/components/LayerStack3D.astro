@@ -13,17 +13,18 @@ interface Props {
 }
 
 const { layers, id } = Astro.props;
-const data = JSON.stringify(layers);
 ---
 
 <div class="viewer-wrap">
-	<canvas id={`canvas-${id}`} class="layer-canvas"></canvas>
+	<canvas
+		class="layer-canvas"
+		data-viewer-id={id}
+		data-layers={JSON.stringify(layers)}
+	></canvas>
 	<p class="viewer-hint">Click and drag to rotate · Scroll to zoom</p>
 </div>
 
-<script define:vars={{ data, id }}>
-	const layers = JSON.parse(data);
-
+<script type="module" is:inline>
 	const FN_COLORS = {
 		finish:      0x4ade80,
 		insulation:  0xfbbf24,
@@ -42,65 +43,67 @@ const data = JSON.stringify(layers);
 		return 0x94a3b8;
 	}
 
-	async function init() {
+	async function initViewer(canvas) {
+		const layers = JSON.parse(canvas.dataset.layers);
+
 		const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js');
 		const { OrbitControls } = await import('https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/controls/OrbitControls.js');
 
-		const canvas = document.getElementById(`canvas-${id}`);
-		const W = canvas.parentElement.clientWidth;
-		const H = Math.min(400, W * 0.6);
+		const wrap = canvas.parentElement;
+		const W = wrap.clientWidth || 600;
+		const H = Math.min(400, W * 0.55);
 		canvas.width = W;
 		canvas.height = H;
+		canvas.style.width = W + 'px';
+		canvas.style.height = H + 'px';
 
-		// Scene
-		const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+		const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 		renderer.setSize(W, H);
-		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+		renderer.setClearColor(0xf1f5f9);
 
 		const scene = new THREE.Scene();
-		scene.background = new THREE.Color(0xf8f9fa);
-
-		const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, 1000);
-		camera.position.set(120, 80, 200);
+		const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, 2000);
+		camera.position.set(100, 90, 220);
 
 		const controls = new OrbitControls(camera, renderer.domElement);
 		controls.enableDamping = true;
-		controls.dampingFactor = 0.08;
-		controls.minDistance = 80;
-		controls.maxDistance = 500;
+		controls.dampingFactor = 0.07;
 
-		// Lighting
-		scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-		const sun = new THREE.DirectionalLight(0xffffff, 1.2);
-		sun.position.set(200, 300, 200);
-		scene.add(sun);
+		scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+		const dir = new THREE.DirectionalLight(0xffffff, 1.5);
+		dir.position.set(150, 200, 150);
+		scene.add(dir);
+		const fill = new THREE.DirectionalLight(0xffffff, 0.4);
+		fill.position.set(-150, -100, -150);
+		scene.add(fill);
 
-		// Scale: total visible depth mapped to ~150 units, min layer = 4 units
+		// Scale layers: minimum display depth 4 units, total ~150 units
 		const MIN_D = 4;
 		const TOTAL_VIS = 150;
-		const totalMm = layers.reduce((s, l) => s + (l.thickness_mm || 0), 0) || 1;
+		const totalMm = layers.reduce((s, l) => s + Math.max(0, l.thickness_mm || 0), 0) || 1;
 		const scale = TOTAL_VIS / totalMm;
 
 		const W_BOX = 100;
 		const H_BOX = 60;
-
-		let offsetX = 0;
 		const group = new THREE.Group();
+		let offsetX = 0;
 
 		layers.forEach((layer) => {
 			const depth = Math.max(MIN_D, (layer.thickness_mm || 0) * scale);
-			const color = fnColor(layer.function);
-
-			// Main box
 			const geo = new THREE.BoxGeometry(depth, H_BOX, W_BOX);
-			const mat = new THREE.MeshPhongMaterial({ color, shininess: 40 });
+
+			const mat = new THREE.MeshStandardMaterial({
+				color: fnColor(layer.function),
+				roughness: 0.6,
+				metalness: 0.0,
+			});
 			const mesh = new THREE.Mesh(geo, mat);
 			mesh.position.x = offsetX + depth / 2;
 			group.add(mesh);
 
-			// Thin edge lines
 			const edges = new THREE.EdgesGeometry(geo);
-			const lineMat = new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25 });
+			const lineMat = new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.2 });
 			const lines = new THREE.LineSegments(edges, lineMat);
 			lines.position.copy(mesh.position);
 			group.add(lines);
@@ -108,11 +111,9 @@ const data = JSON.stringify(layers);
 			offsetX += depth;
 		});
 
-		// Centre the group
 		group.position.x = -offsetX / 2;
 		scene.add(group);
 
-		// Animate
 		function animate() {
 			requestAnimationFrame(animate);
 			controls.update();
@@ -120,17 +121,18 @@ const data = JSON.stringify(layers);
 		}
 		animate();
 
-		// Resize
-		window.addEventListener('resize', () => {
-			const nW = canvas.parentElement.clientWidth;
-			const nH = Math.min(400, nW * 0.6);
+		new ResizeObserver(() => {
+			const nW = wrap.clientWidth;
+			const nH = Math.min(400, nW * 0.55);
+			canvas.style.width = nW + 'px';
+			canvas.style.height = nH + 'px';
 			camera.aspect = nW / nH;
 			camera.updateProjectionMatrix();
 			renderer.setSize(nW, nH);
-		});
+		}).observe(wrap);
 	}
 
-	init();
+	document.querySelectorAll('canvas.layer-canvas[data-layers]').forEach(initViewer);
 </script>
 
 <style>
