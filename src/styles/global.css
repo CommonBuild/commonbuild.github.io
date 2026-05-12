@@ -1,0 +1,109 @@
+/* Element library table */
+.element-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9rem;
+}
+
+.element-table th,
+.element-table td {
+	padding: 0.6rem 0.8rem;
+	text-align: left;
+	border-bottom: 1px solid var(--sl-color-gray-5);
+}
+
+.element-table th {
+	background: var(--sl-color-gray-6);
+	font-weight: 600;
+	color: var(--sl-color-white);
+}
+
+.element-table tr:hover td {
+	background: var(--sl-color-gray-7);
+}
+
+.element-table a {
+	color: var(--sl-color-accent);
+	text-decoration: none;
+	font-weight: 500;
+}
+
+.element-table a:hover {
+	text-decoration: underline;
+}
+
+/* Tags */
+.tag {
+	display: inline-block;
+	padding: 0.15rem 0.5rem;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 500;
+	background: var(--sl-color-accent-low);
+	color: var(--sl-color-accent-high);
+	margin: 0.1rem;
+}
+
+/* Layer stack table */
+.layer-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.875rem;
+	margin: 1.5rem 0;
+}
+
+.layer-table th,
+.layer-table td {
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--sl-color-gray-5);
+	text-align: left;
+}
+
+.layer-table th {
+	background: var(--sl-color-gray-6);
+	font-weight: 600;
+}
+
+.layer-table td:first-child {
+	color: var(--sl-color-gray-3);
+	text-align: center;
+	width: 2.5rem;
+}
+
+/* Metric cards */
+.metrics {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 1rem;
+	margin: 1.5rem 0;
+}
+
+.metric-card {
+	padding: 1rem;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.5rem;
+	text-align: center;
+}
+
+.metric-card .value {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: var(--sl-color-accent);
+	display: block;
+}
+
+.metric-card .label {
+	font-size: 0.75rem;
+	color: var(--sl-color-gray-3);
+	margin-top: 0.25rem;
+	display: block;
+}
+
+/* Function badges */
+.fn-finish     { background: #d1fae5; color: #065f46; }
+.fn-insulation { background: #fef3c7; color: #92400e; }
+.fn-structural { background: #dbeafe; color: #1e40af; }
+.fn-moisture   { background: #ede9fe; color: #5b21b6; }
+.fn-waterproof { background: #cffafe; color: #164e63; }
+.fn-protection { background: #fce7f3; color: #9d174d; }
+.fn-services   { background: #f3f4f6; color: #374151; }

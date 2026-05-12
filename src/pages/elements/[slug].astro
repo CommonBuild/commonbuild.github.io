@@ -1,0 +1,81 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+
+export async function getStaticPaths() {
+	const elements = await getCollection('elements');
+	return elements.map((el) => ({ params: { slug: el.id } }));
+}
+
+const { slug } = Astro.params;
+const element = await getEntry('elements', slug!);
+if (!element) return Astro.redirect('/elements/');
+
+const { data } = element;
+
+function fnClass(fn: string) {
+	if (fn.includes('finish')) return 'fn-finish';
+	if (fn.includes('insulation')) return 'fn-insulation';
+	if (fn.includes('structural')) return 'fn-structural';
+	if (fn.includes('moisture') || fn.includes('vapour')) return 'fn-moisture';
+	if (fn.includes('waterproof')) return 'fn-waterproof';
+	if (fn.includes('protection')) return 'fn-protection';
+	return 'fn-services';
+}
+---
+
+<StarlightPage frontmatter={{ title: data.name, description: data.description }}>
+	<p><code>{data.ifc_class}</code></p>
+	<p>{data.description}</p>
+
+	<div class="metrics">
+		<div class="metric-card">
+			<span class="value">{data.total_thickness_mm} mm</span>
+			<span class="label">Total thickness</span>
+		</div>
+		<div class="metric-card">
+			<span class="value">{data.u_value} W/m²K</span>
+			<span class="label">U-value</span>
+		</div>
+		<div class="metric-card">
+			<span class="value">{data.fire_rating}</span>
+			<span class="label">Fire rating</span>
+		</div>
+		<div class="metric-card">
+			<span class="value">{data.layers.length}</span>
+			<span class="label">Layers</span>
+		</div>
+	</div>
+
+	<div>
+		{data.tags.map((tag) => <span class="tag">{tag}</span>)}
+	</div>
+
+	<h2>Layer Stack</h2>
+	<p>Listed from exterior (position 1) to interior.</p>
+
+	<table class="layer-table">
+		<thead>
+			<tr>
+				<th>#</th>
+				<th>Layer</th>
+				<th>Material</th>
+				<th>Thickness</th>
+				<th>Function</th>
+			</tr>
+		</thead>
+		<tbody>
+			{data.layers.map((layer) => (
+				<tr>
+					<td>{layer.position}</td>
+					<td>{layer.name}</td>
+					<td>{layer.material}</td>
+					<td>{layer.thickness_mm > 0 ? `${layer.thickness_mm} mm` : '—'}</td>
+					<td><span class={`tag ${fnClass(layer.function)}`}>{layer.function}</span></td>
+				</tr>
+			))}
+		</tbody>
+	</table>
+
+	<p><a href="/elements/">← Back to Element Library</a></p>
+</StarlightPage>

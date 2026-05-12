@@ -1,0 +1,38 @@
+---
+title: Commonbuild
+description: Open source ecological self-build documentation and building element library.
+template: splash
+hero:
+  tagline: Open source documentation for ecological self-build projects
+  actions:
+    - text: Browse Element Library
+      link: /elements/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/commonbuild
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## What is Commonbuild?
+
+Commonbuild is an open documentation platform for ecological self-build construction.
+It provides a structured library of building elements — walls, floors, roofs — with full
+layerset specifications, thermal performance data, and material breakdowns.
+
+<CardGrid stagger>
+	<Card title="Element Library" icon="list-format">
+		Browse building elements with complete layersets, U-values, fire ratings, and material specifications.
+	</Card>
+	<Card title="BIM Ready" icon="document">
+		All elements are referenced to IFC classes, making them directly usable in your BIM models.
+	</Card>
+	<Card title="Open Source" icon="github">
+		Every element is documented in version-controlled YAML files, open for community contribution.
+	</Card>
+	<Card title="Ecological Focus" icon="sun">
+		Prioritising low-carbon, natural, and recyclable materials in every building assembly.
+	</Card>
+</CardGrid>
