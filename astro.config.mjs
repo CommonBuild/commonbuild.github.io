@@ -13,6 +13,7 @@ export default defineConfig({
 			],
 			sidebar: [
 				{ label: 'Home', link: '/' },
+				{ label: 'Uitbouw Configurator', link: '/configurator/' },
 				{
 					label: 'Element Library',
 					items: [
