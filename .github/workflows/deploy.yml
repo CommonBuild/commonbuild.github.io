@@ -17,18 +17,24 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
-      - run: pip3 install pyyaml ifcopenshell
+      - name: Install Python dependencies
+        run: pip3 install pyyaml ifcopenshell
 
-      - run: npm install
+      - name: Install Node dependencies
+        run: npm ci
 
-      - run: npm run build
+      - name: Build
+        run: npm run build
 
       - uses: actions/upload-pages-artifact@v3
         with:
