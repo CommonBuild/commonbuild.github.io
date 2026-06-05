@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "python3 scripts/generate_ifc.py && astro build",
+    "build": "astro build",
+    "generate-ifc": "python3 scripts/generate_ifc.py",
     "preview": "astro preview",
     "astro": "astro"
   },

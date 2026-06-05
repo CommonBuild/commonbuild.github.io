@@ -27,12 +27,6 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install Python dependencies
-        run: pip3 install pyyaml ifcopenshell --break-system-packages
-
-      - name: Generate IFC files
-        run: python3 scripts/generate_ifc.py
-
       - name: Install Node dependencies
         run: npm ci
 
