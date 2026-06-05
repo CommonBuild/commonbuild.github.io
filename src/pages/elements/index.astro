@@ -1,9 +1,8 @@
 ---
-import { getCollection } from 'astro:content';
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { getElements } from '../../data/index.ts';
 
-const all = await getCollection('elements');
-all.sort((a, b) => a.data.name.localeCompare(b.data.name));
+const all = getElements().sort((a, b) => a.name.localeCompare(b.name));
 
 const structure = [
 	{ category: 'walls',  label: 'Walls',  subs: [{ key: 'external', label: 'External Walls' }, { key: 'internal', label: 'Internal Walls' }] },
@@ -11,12 +10,12 @@ const structure = [
 	{ category: 'roofs',  label: 'Roofs',  subs: [{ key: 'flat', label: 'Flat Roofs' }, { key: 'sloped', label: 'Sloped Roofs' }] },
 ] as const;
 
-type Category = typeof structure[number]['category'];
+type Category    = typeof structure[number]['category'];
 type Subcategory = 'external' | 'internal' | 'flat' | 'sloped';
 
 function byCategory(cat: Category, sub?: Subcategory) {
 	return all.filter(el =>
-		el.data.category === cat && (sub ? el.data.subcategory === sub : true)
+		el.category === cat && (sub ? el.subcategory === sub : true)
 	);
 }
 ---
@@ -41,11 +40,11 @@ function byCategory(cat: Category, sub?: Subcategory) {
 								<tbody>
 									{items.map(el => (
 										<tr>
-											<td><a href={`/elements/${el.id}/`}>{el.data.name}</a></td>
-											<td><code>{el.data.ifc_class}</code></td>
-											<td>{el.data.total_thickness_mm} mm</td>
-											<td>{el.data.u_value} W/m²K</td>
-											<td>{el.data.fire_rating}</td>
+											<td><a href={`/elements/${el.id}/`}>{el.name}</a></td>
+											<td><code>{el.ifc_class}</code></td>
+											<td>{el.total_thickness_mm} mm</td>
+											<td>{el.u_value} W/m²K</td>
+											<td>{el.fire_rating}</td>
 										</tr>
 									))}
 								</tbody>
@@ -58,11 +57,11 @@ function byCategory(cat: Category, sub?: Subcategory) {
 						<tbody>
 							{topLevel.map(el => (
 								<tr>
-									<td><a href={`/elements/${el.id}/`}>{el.data.name}</a></td>
-									<td><code>{el.data.ifc_class}</code></td>
-									<td>{el.data.total_thickness_mm} mm</td>
-									<td>{el.data.u_value} W/m²K</td>
-									<td>{el.data.fire_rating}</td>
+									<td><a href={`/elements/${el.id}/`}>{el.name}</a></td>
+									<td><code>{el.ifc_class}</code></td>
+									<td>{el.total_thickness_mm} mm</td>
+									<td>{el.u_value} W/m²K</td>
+									<td>{el.fire_rating}</td>
 								</tr>
 							))}
 						</tbody>

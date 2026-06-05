@@ -1,0 +1,96 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Layers database — Commonbuild
+# ──────────────────────────────────────────────────────────────────────────────
+# Vlakke tabel: één rij per laag. Gelinkt via element_id → elements.yaml
+# en via material_id → materials.yaml.
+# Nieuw veld toevoegen = één nieuwe regel per record, geen geneste structuur.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── HSB_140/215 ─────────────────────────────────────────────────────
+
+- element_id: HSB_140_215
+  position: 1
+  name: Houten gevelbekleding
+  material_id: plato-vuren-londen
+  thickness_mm: 18
+  function: gevelafwerking
+
+- element_id: HSB_140_215
+  position: 2
+  name: Horizontaal latwerk
+  material_id: vuren-lat-30x48
+  thickness_mm: 30
+  function: gevelafwerking
+
+- element_id: HSB_140_215
+  position: 3
+  name: Verticaal latwerk
+  material_id: vuren-lat-30x48
+  thickness_mm: 30
+  function: gevelafwerking
+
+- element_id: HSB_140_215
+  position: 4
+  name: Isolerende houtvezelplaat
+  material_id: steico-universal-35
+  thickness_mm: 35
+  function: insulation
+
+- element_id: HSB_140_215
+  position: 5
+  name: Dragende houtskelet - Geisoleerd met houtwol
+  material_id: houtskelet-kvh45x140-steico-flex140
+  thickness_mm: 140
+  function: structural
+
+- element_id: HSB_140_215
+  position: 6
+  name: OSB
+  material_id: osb3-15mm
+  thickness_mm: 15
+  function: structural
+
+# ── BETON_150/450 ────────────────────────────────────────────────────────
+
+- element_id: Beton
+  position: 1
+  name: Gewapend beton
+  material_id: beton-c25-30
+  thickness_mm: 150
+  function: structural
+- element_id: Glasschuimgranulaat
+  position: 2
+  name: Gewapend beton
+  material_id: beton-c25-30
+  thickness_mm: 300
+  function: structural
+
+# ── roof-flat-warm ────────────────────────────────────────────────────────────
+
+- element_id: roof-flat-warm
+  position: 1
+  name: EPDM waterdichting
+  material_id: epdm-1-5mm
+  thickness_mm: 2
+  function: waterproof
+
+- element_id: roof-flat-warm
+  position: 2
+  name: PIR isolatie
+  material_id: pir-200mm
+  thickness_mm: 200
+  function: insulation
+
+- element_id: roof-flat-warm
+  position: 3
+  name: Dampscherm
+  material_id: dampscherm-pe
+  thickness_mm: 1
+  function: moisture
+
+- element_id: roof-flat-warm
+  position: 4
+  name: Betonnen dakplaat
+  material_id: beton-c25-30
+  thickness_mm: 150
+  function: structural

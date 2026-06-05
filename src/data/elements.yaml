@@ -1,0 +1,40 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Elements database — Commonbuild
+# ──────────────────────────────────────────────────────────────────────────────
+# Vlakke metadata per bouwelement. Lagen zitten in layers.yaml (via element_id).
+# Categorieën: walls | floors | roofs
+# Subcategorieën: external | internal | flat | sloped
+# ──────────────────────────────────────────────────────────────────────────────
+
+- id: HSB_140_215
+  name: Timber Frame Wall 140mm
+  category: walls
+  subcategory: external
+  ifc_class: IfcWall
+  description: Houtskeletwand met geventileerde gevelbekleding, houtvezelisolatie en Fermacell binnenafwerking.
+  total_thickness_mm: 215
+  u_value: 0.21
+  fire_rating: REI 60
+  tags: [exterior, timber, residential, low-energy]
+
+- id: slab-concrete-200
+  name: Concrete Slab 200mm
+  category: floors
+  subcategory:
+  ifc_class: IfcSlab
+  description: Gewapende betonvloer 200mm op zand of insitu gestort.
+  total_thickness_mm: 200
+  u_value: 3.50
+  fire_rating: REI 120
+  tags: [concrete, structural, floor]
+
+- id: roof-flat-warm
+  name: Flat Roof - Warm Roof
+  category: roofs
+  subcategory: flat
+  ifc_class: IfcRoof
+  description: Warm plat dak met PIR-isolatie en EPDM waterdichting.
+  total_thickness_mm: 350
+  u_value: 0.15
+  fire_rating: REI 60
+  tags: [flat, warm-roof, epdm, pir]

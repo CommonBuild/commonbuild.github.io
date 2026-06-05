@@ -1,14 +1,41 @@
 ---
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { getElements } from '../../data/index.ts';
+
+// Wandtypes verrijkt met lagen + materiaaldata via de gedeelde data-helper
+const wallTypes = getElements(e => e.category === 'walls').map(e => ({
+  id:                e.id,
+  name:              e.name,
+  total_thickness_mm: e.total_thickness_mm,
+  u_value:           e.u_value,
+  layers: e.layers.map(l => ({
+    position:           l.position,
+    name:               l.name,
+    material:           l.material?.name ?? l.material_id ?? '',
+    material_id:        l.material_id ?? null,
+    thickness_mm:       l.thickness_mm,
+    function:           l.function,
+    mat_name:           l.material?.name           ?? null,
+    mat_category:       l.material?.category       ?? null,
+    mat_unit:           l.material?.unit           ?? null,
+    mat_price_per_unit: l.material?.price_per_unit ?? null,
+    mat_price_currency: l.material?.price_currency ?? 'EUR',
+    mat_ifc_material_name: l.material?.ifc_material_name ?? null,
+    mat_supplier:       l.material?.supplier       ?? null,
+    mat_supplier_url:   l.material?.supplier_url   ?? null,
+  })),
+}));
 ---
 
-<StarlightPage frontmatter={{ title: 'Uitbouw Configurator', description: 'Stel de breedte en diepte van een uitbouw volume parametrisch in en download het IFC model.' }}>
+<StarlightPage frontmatter={{ title: 'Uitbouw Configurator', description: 'Configureer je uitbouw: kies afmetingen en wandopbouw, bekijk het grondplan en 3D model, en exporteer naar IFC.' }}>
 
-	<p>Pas de afmetingen van je uitbouw aan via de schuifregelaars. Het 3D model werkt live mee. Download het IFC bestand om het in je BIM software te importeren.</p>
+	<script define:vars={{ wallTypesData: wallTypes }}>
+		window.__wallTypes = wallTypesData;
+	</script>
 
 	<div class="configurator-layout">
 
-		<!-- Controls panel -->
+		<!-- ── Controls panel ─────────────────────────────── -->
 		<aside class="config-panel">
 			<h2>Afmetingen</h2>
 
@@ -39,10 +66,23 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 				<div class="range-limits"><span>2 m</span><span>4 m</span></div>
 			</div>
 
+			<div class="control-group">
+				<label for="select-wall">
+					Wandtype
+					<span class="dim-value" id="val-wall-thickness">— mm</span>
+				</label>
+				<select id="select-wall">
+					{wallTypes.map(w => (
+						<option value={w.id}>{w.name}</option>
+					))}
+				</select>
+				<div class="wall-meta">U = <span id="val-wall-u">—</span> W/m²K</div>
+			</div>
+
 			<div class="metrics-grid">
 				<div class="metric-card">
 					<span class="value" id="met-floor">12,00</span>
-					<span class="label">m² vloeroppervlak</span>
+					<span class="label">m² vloer</span>
 				</div>
 				<div class="metric-card">
 					<span class="value" id="met-volume">33,60</span>
@@ -58,25 +98,124 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 			<p class="hint">Sleep en scroll in het 3D venster om te navigeren.</p>
 		</aside>
 
-		<!-- 3D viewer -->
-		<div class="viewer-wrap">
-			<canvas id="vol-canvas"></canvas>
+		<!-- ── Right column: 2D plan + 3D view ───────────── -->
+		<div class="viewer-column">
+
+			<!-- 2D floor plan -->
+			<div class="plan-wrap">
+				<svg id="plan-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+					<defs>
+						<pattern id="hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+							<line x1="0" y1="0" x2="0" y2="6" stroke="#94a3b8" stroke-width="1"/>
+						</pattern>
+					</defs>
+				</svg>
+			</div>
+
+			<!-- 3D view -->
+			<div class="viewer-wrap">
+				<canvas id="vol-canvas"></canvas>
+			</div>
+
 		</div>
 
 	</div>
+
+	<!-- ── Meetstaat ──────────────────────────────────────────────────────────── -->
+	<section class="quantities-section">
+		<h2 class="section-title">Meetstaat</h2>
+		<p class="section-desc">Berekend op basis van de ingegeven afmetingen en wanddikte.</p>
+
+		<table class="qty-table" id="tbl-meetstaat">
+			<thead>
+				<tr>
+					<th>Element</th>
+					<th>Omschrijving</th>
+					<th class="num">Breedte (m)</th>
+					<th class="num">Hoogte / Diepte (m)</th>
+					<th class="num">Opp. (m²)</th>
+					<th class="num">Volume (m³)</th>
+				</tr>
+			</thead>
+			<tbody id="tbody-meetstaat">
+				<!-- filled by JS -->
+			</tbody>
+			<tfoot id="tfoot-meetstaat">
+				<!-- totals -->
+			</tfoot>
+		</table>
+	</section>
+
+	<!-- ── Bill of Materials ──────────────────────────────────────────────────── -->
+	<section class="quantities-section">
+		<h2 class="section-title">Bill of Materials</h2>
+		<p class="section-desc">Materiaalstaten afgeleid uit de laagopbouw van het geselecteerde wandtype, toegepast op alle wanden.</p>
+
+		<table class="qty-table" id="tbl-bom">
+			<thead>
+				<tr>
+					<th>#</th>
+					<th>Laag</th>
+					<th>Product</th>
+					<th>Categorie</th>
+					<th class="num">Dikte (mm)</th>
+					<th class="num">Hoeveelheid</th>
+					<th class="num">Prijs (ind.)</th>
+					<th>Leverancier</th>
+				</tr>
+			</thead>
+			<tbody id="tbody-bom">
+				<!-- filled by JS -->
+			</tbody>
+			<tfoot id="tfoot-bom">
+				<!-- price total -->
+			</tfoot>
+		</table>
+	</section>
 
 </StarlightPage>
 
 <script>
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { IFCLoader } from 'web-ifc-three';
 
-// ─── State ───────────────────────────────────────────────────────────────────
+// ─── Wall data ────────────────────────────────────────────────────────────────
+interface LayerData {
+	position: number;
+	name: string;
+	material: string;           // leesbare naam / IFC-fallback
+	material_id: string | null;
+	thickness_mm: number;
+	function: string;
+	// Materialen database velden (null als geen material_id gekoppeld)
+	mat_name: string | null;
+	mat_category: string | null;
+	mat_unit: 'm²' | 'lm' | 'm³' | 'kg' | 'stuk' | null;
+	mat_price_per_unit: number | null;
+	mat_price_currency: string;
+	mat_ifc_material_name: string | null;
+	mat_supplier: string | null;
+	mat_supplier_url: string | null;
+}
+
+interface WallType {
+	id: string;
+	name: string;
+	total_thickness_mm: number;
+	u_value: number;
+	layers: LayerData[];
+}
+
+const wallTypes = (window as any).__wallTypes as WallType[];
+
+// ─── State ────────────────────────────────────────────────────────────────────
 let widthMm  = 4000;
 let depthMm  = 3000;
 let heightMm = 2800;
+let selectedWall = wallTypes[0] ?? null;
 
-// ─── Three.js setup ──────────────────────────────────────────────────────────
+// ─── Three.js setup ───────────────────────────────────────────────────────────
 const canvas   = document.getElementById('vol-canvas') as HTMLCanvasElement;
 const wrap     = canvas.parentElement as HTMLElement;
 
@@ -85,66 +224,116 @@ renderer.setClearColor(0xf1f5f9);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 const scene  = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(40, 1, 10, 50000);
+const camera = new THREE.PerspectiveCamera(40, 1, 10, 100000);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping  = true;
-controls.dampingFactor  = 0.07;
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
 
-scene.add(new THREE.AmbientLight(0xffffff, 1.8));
-const sun = new THREE.DirectionalLight(0xffffff, 1.8);
+scene.add(new THREE.AmbientLight(0xffffff, 2.2));
+const sun = new THREE.DirectionalLight(0xffffff, 2.0);
 sun.position.set(5000, 8000, 4000);
 scene.add(sun);
-const fill = new THREE.DirectionalLight(0xffffff, 0.6);
-fill.position.set(-3000, -2000, -3000);
+const fill = new THREE.DirectionalLight(0xffffff, 0.8);
+fill.position.set(-3000, 2000, -3000);
 scene.add(fill);
 
-// Grid floor
 const grid = new THREE.GridHelper(20000, 20, 0xbbbbbb, 0xdddddd);
-grid.position.y = 0;
 scene.add(grid);
 
-// Volume mesh
-let boxMesh: THREE.Mesh | null    = null;
-let edgeMesh: THREE.LineSegments | null = null;
+// ─── IFC Loader setup ─────────────────────────────────────────────────────────
+const ifcLoader = new IFCLoader();
+ifcLoader.ifcManager.setWasmPath('/');   // web-ifc.wasm is served from /public
 
-function rebuildBox() {
-	if (boxMesh)  { scene.remove(boxMesh);  boxMesh.geometry.dispose(); }
-	if (edgeMesh) { scene.remove(edgeMesh); edgeMesh.geometry.dispose(); }
+// Track current model object so we can remove it before loading the next
+let currentModel: THREE.Object3D | null = null;
+let isLoading = false;
+let pendingRefresh = false;
 
-	const geo = new THREE.BoxGeometry(widthMm, heightMm, depthMm);
+async function loadIfcIntoScene() {
+	if (isLoading) { pendingRefresh = true; return; }
+	isLoading = true;
 
-	boxMesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
-		color: 0x93c5fd,
-		roughness: 0.45,
-		metalness: 0.05,
-		transparent: true,
-		opacity: 0.82,
-	}));
-	// Origin at floor level, centred in X/Z
-	boxMesh.position.set(widthMm / 2, heightMm / 2, depthMm / 2);
-	scene.add(boxMesh);
+	// Remove previous model from scene
+	if (currentModel !== null) {
+		scene.remove(currentModel);
+		currentModel.traverse((child: THREE.Object3D) => {
+			if ((child as THREE.Mesh).isMesh) {
+				const m = child as THREE.Mesh;
+				m.geometry.dispose();
+				if (Array.isArray(m.material)) m.material.forEach(mt => mt.dispose());
+				else m.material.dispose();
+			}
+		});
+		currentModel = null;
+	}
 
-	edgeMesh = new THREE.LineSegments(
-		new THREE.EdgesGeometry(geo),
-		new THREE.LineBasicMaterial({ color: 0x1d4ed8, transparent: true, opacity: 0.55 })
-	);
-	edgeMesh.position.copy(boxMesh.position);
-	scene.add(edgeMesh);
+	// Generate IFC string → Blob URL → load via IFCLoader
+	const ifcString = generateIFC(widthMm, depthMm, heightMm);
+	const blob = new Blob([ifcString], { type: 'application/x-step' });
+	const url  = URL.createObjectURL(blob);
 
-	// Reposition camera so the box is fully visible
-	const diag = Math.sqrt(widthMm ** 2 + depthMm ** 2 + heightMm ** 2);
-	camera.position.set(widthMm * 1.6, heightMm * 1.4, depthMm * 2.2);
-	controls.target.set(widthMm / 2, heightMm / 2, depthMm / 2);
-	camera.far = diag * 6;
-	camera.near = diag * 0.001;
-	camera.updateProjectionMatrix();
-	controls.update();
+	try {
+		const model = await ifcLoader.loadAsync(url) as THREE.Object3D;
+		model.name = 'ifc-model';
+
+		// web-ifc-three uses MeshLambertMaterial with vertex colors — replace with
+		// a standard material that works with our lighting, keep DoubleSide for walls
+		model.traverse((child: THREE.Object3D) => {
+			if ((child as THREE.Mesh).isMesh) {
+				const mesh = child as THREE.Mesh;
+				const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+				mesh.material = mats.map(() => new THREE.MeshStandardMaterial({
+					color: 0x93c5fd,
+					roughness: 0.4,
+					metalness: 0.05,
+					transparent: true,
+					opacity: 0.88,
+					side: THREE.DoubleSide,
+				}));
+			}
+		});
+
+		scene.add(model);
+		currentModel = model;
+
+		// web-ifc-three rotates IFC (Z-up) → Three.js (Y-up), so use bounding
+		// box to reliably fit camera regardless of coordinate transformation
+		const box    = new THREE.Box3().setFromObject(model);
+		const center = box.getCenter(new THREE.Vector3());
+		const size   = box.getSize(new THREE.Vector3());
+		const maxDim = Math.max(size.x, size.y, size.z);
+
+		camera.far  = maxDim * 10;
+		camera.near = maxDim * 0.001;
+		camera.position.set(
+			center.x + maxDim * 1.2,
+			center.y + maxDim * 0.8,
+			center.z + maxDim * 1.4,
+		);
+		controls.target.copy(center);
+		camera.updateProjectionMatrix();
+		controls.update();
+
+	} catch (err) {
+		console.error('[IFC Loader] Failed to load model:', err);
+	} finally {
+		URL.revokeObjectURL(url);
+		isLoading = false;
+		if (pendingRefresh) { pendingRefresh = false; loadIfcIntoScene(); }
+	}
+}
+
+// Debounce: only reload IFC 200ms after last slider movement
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleIfcReload() {
+	if (debounceTimer) clearTimeout(debounceTimer);
+	debounceTimer = setTimeout(() => loadIfcIntoScene(), 200);
 }
 
 function resizeRenderer() {
 	const w = wrap.clientWidth;
-	const h = Math.max(320, Math.round(w * 0.6));
+	const h = Math.max(260, Math.round(w * 0.55));
 	renderer.setSize(w, h);
 	camera.aspect = w / h;
 	camera.updateProjectionMatrix();
@@ -152,7 +341,6 @@ function resizeRenderer() {
 
 new ResizeObserver(resizeRenderer).observe(wrap);
 resizeRenderer();
-rebuildBox();
 
 (function animate() {
 	requestAnimationFrame(animate);
@@ -160,27 +348,230 @@ rebuildBox();
 	renderer.render(scene, camera);
 })();
 
-// ─── UI wiring ───────────────────────────────────────────────────────────────
+// ─── 2D floor plan (SVG) ─────────────────────────────────────────────────────
+const planSvg = document.getElementById('plan-svg') as unknown as SVGSVGElement;
+
+function updatePlan() {
+	const t   = selectedWall?.total_thickness_mm ?? 200;
+	const W   = widthMm;
+	const D   = depthMm;
+
+	// SVG canvas with padding for dimension lines
+	const PAD  = 60;   // space for arrows + labels
+	const SCALE = 280 / Math.max(W, D);   // fit largest dim into 280 px
+	const sw   = Math.round(W * SCALE);
+	const sd   = Math.round(D * SCALE);
+	const st   = Math.max(4, Math.round(t * SCALE));
+	const VW   = sw + PAD * 2;
+	const VH   = sd + PAD * 2;
+	const ox   = PAD;   // origin x (top-left of outer wall)
+	const oy   = PAD;   // origin y
+
+	planSvg.setAttribute('viewBox', `0 0 ${VW} ${VH}`);
+	planSvg.setAttribute('width',  String(VW));
+	planSvg.setAttribute('height', String(VH));
+
+	// Clear existing dynamic content (keep <defs>)
+	const defs = planSvg.querySelector('defs');
+	while (planSvg.lastChild && planSvg.lastChild !== defs) {
+		planSvg.removeChild(planSvg.lastChild);
+	}
+
+	const ns = 'http://www.w3.org/2000/svg';
+
+	function el(tag: string, attrs: Record<string, string | number>) {
+		const e = document.createElementNS(ns, tag);
+		for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
+		return e;
+	}
+
+	function txt(content: string, attrs: Record<string, string | number>) {
+		const e = el('text', attrs);
+		e.textContent = content;
+		return e;
+	}
+
+	function arrow(x1: number, y1: number, x2: number, y2: number, label: string, horiz: boolean) {
+		const g = document.createElementNS(ns, 'g');
+		// Line
+		g.appendChild(el('line', { x1, y1, x2, y2, stroke: '#475569', 'stroke-width': 1.2 }));
+		// Arrowheads (simple ticks)
+		const size = 5;
+		if (horiz) {
+			g.appendChild(el('polyline', { points: `${x1 + size},${y1 - size} ${x1},${y1} ${x1 + size},${y1 + size}`, stroke: '#475569', 'stroke-width': 1.2, fill: 'none' }));
+			g.appendChild(el('polyline', { points: `${x2 - size},${y2 - size} ${x2},${y2} ${x2 - size},${y2 + size}`, stroke: '#475569', 'stroke-width': 1.2, fill: 'none' }));
+			g.appendChild(txt(label, { x: (x1 + x2) / 2, y: y1 - 8, 'text-anchor': 'middle', 'font-size': 11, fill: '#1e293b', 'font-family': 'sans-serif', 'font-weight': '600' }));
+		} else {
+			g.appendChild(el('polyline', { points: `${x1 - size},${y1 + size} ${x1},${y1} ${x1 + size},${y1 + size}`, stroke: '#475569', 'stroke-width': 1.2, fill: 'none' }));
+			g.appendChild(el('polyline', { points: `${x2 - size},${y2 - size} ${x2},${y2} ${x2 + size},${y2 - size}`, stroke: '#475569', 'stroke-width': 1.2, fill: 'none' }));
+			g.appendChild(txt(label, { x: x1 - 12, y: (y1 + y2) / 2, 'text-anchor': 'middle', 'font-size': 11, fill: '#1e293b', 'font-family': 'sans-serif', 'font-weight': '600', transform: `rotate(-90, ${x1 - 12}, ${(y1 + y2) / 2})` }));
+		}
+		return g;
+	}
+
+	// Outer wall rectangle (hatch fill)
+	planSvg.appendChild(el('rect', { x: ox, y: oy, width: sw, height: sd, fill: 'url(#hatch)', stroke: '#334155', 'stroke-width': 1.5 }));
+
+	// Inner space (clear opening)
+	planSvg.appendChild(el('rect', { x: ox + st, y: oy + st, width: sw - 2 * st, height: sd - 2 * st, fill: '#f8fafc', stroke: '#334155', 'stroke-width': 1 }));
+
+	// Dimension: width (top)
+	const dimY = oy - 20;
+	planSvg.appendChild(el('line', { x1: ox, y1: oy, x2: ox, y2: dimY + 4, stroke: '#94a3b8', 'stroke-width': 1, 'stroke-dasharray': '3,2' }));
+	planSvg.appendChild(el('line', { x1: ox + sw, y1: oy, x2: ox + sw, y2: dimY + 4, stroke: '#94a3b8', 'stroke-width': 1, 'stroke-dasharray': '3,2' }));
+	planSvg.appendChild(arrow(ox, dimY, ox + sw, dimY, `${(W / 1000).toFixed(2).replace('.', ',')} m`, true));
+
+	// Dimension: depth (left)
+	const dimX = ox - 20;
+	planSvg.appendChild(el('line', { x1: ox, y1: oy, x2: dimX + 4, y2: oy, stroke: '#94a3b8', 'stroke-width': 1, 'stroke-dasharray': '3,2' }));
+	planSvg.appendChild(el('line', { x1: ox, y1: oy + sd, x2: dimX + 4, y2: oy + sd, stroke: '#94a3b8', 'stroke-width': 1, 'stroke-dasharray': '3,2' }));
+	planSvg.appendChild(arrow(dimX, oy, dimX, oy + sd, `${(D / 1000).toFixed(2).replace('.', ',')} m`, false));
+
+	// Wall thickness label (bottom-right)
+	planSvg.appendChild(txt(`t = ${t} mm`, { x: ox + sw - 4, y: oy + sd + 14, 'text-anchor': 'end', 'font-size': 10, fill: '#64748b', 'font-family': 'sans-serif' }));
+
+	// "Grondplan" label
+	planSvg.appendChild(txt('Grondplan', { x: VW / 2, y: VH - 6, 'text-anchor': 'middle', 'font-size': 10, fill: '#94a3b8', 'font-family': 'sans-serif' }));
+}
+
+// ─── UI wiring ────────────────────────────────────────────────────────────────
 function fmt(mm: number) {
 	return (mm / 1000).toFixed(2).replace('.', ',') + ' m';
 }
 
 function updateMetrics() {
-	const floor  = (widthMm / 1000) * (depthMm / 1000);
-	const vol    = floor * (heightMm / 1000);
+	const floor = (widthMm / 1000) * (depthMm / 1000);
+	const vol   = floor * (heightMm / 1000);
 	(document.getElementById('met-floor')  as HTMLElement).textContent = floor.toFixed(2).replace('.', ',');
 	(document.getElementById('met-volume') as HTMLElement).textContent = vol.toFixed(2).replace('.', ',');
 }
 
+function fNum(n: number, dec = 2): string {
+	return n.toFixed(dec).replace('.', ',');
+}
+
+function updateTables() {
+	const t  = selectedWall?.total_thickness_mm ?? 0;   // mm
+	const W  = widthMm  / 1000;   // m
+	const D  = depthMm  / 1000;
+	const H  = heightMm / 1000;
+	const th = t / 1000;           // m
+
+	// ── Meetstaat rows ────────────────────────────────────────────────────────
+	// Netto binnenmaatse afmetingen
+	const Wi = W - 2 * th;
+	const Di = D - 2 * th;
+
+	type Row = { label: string; desc: string; w: number|null; h: number|null; area: number; vol: number; isWall?: boolean };
+
+	const rows: Row[] = [
+		{ label: 'Vloer',       desc: 'Netto vloeroppervlakte (binnenmaat)',   w: Wi,   h: Di,   area: Wi * Di,       vol: 0 },
+		{ label: 'Voorwand',    desc: `Buitenmaat breedte × hoogte`,           w: W,    h: H,    area: W * H,         vol: W * H * th, isWall: true },
+		{ label: 'Achterwand',  desc: `Buitenmaat breedte × hoogte`,           w: W,    h: H,    area: W * H,         vol: W * H * th, isWall: true },
+		{ label: 'Linkerwand',  desc: `Netto diepte × hoogte`,                 w: Di,   h: H,    area: Di * H,        vol: Di * H * th, isWall: true },
+		{ label: 'Rechterwand', desc: `Netto diepte × hoogte`,                 w: Di,   h: H,    area: Di * H,        vol: Di * H * th, isWall: true },
+	];
+
+	const totalWallArea = rows.filter(r => r.isWall).reduce((s, r) => s + r.area, 0);
+	const totalWallVol  = rows.filter(r => r.isWall).reduce((s, r) => s + r.vol,  0);
+
+	const tbody = document.getElementById('tbody-meetstaat')!;
+	tbody.innerHTML = rows.map(r => `
+		<tr>
+			<td class="bold">${r.label}</td>
+			<td class="muted">${r.desc}</td>
+			<td class="num">${r.w !== null ? fNum(r.w) : '—'}</td>
+			<td class="num">${r.h !== null ? fNum(r.h) : '—'}</td>
+			<td class="num">${fNum(r.area)}</td>
+			<td class="num">${r.vol > 0 ? fNum(r.vol, 3) : '—'}</td>
+		</tr>`).join('');
+
+	document.getElementById('tfoot-meetstaat')!.innerHTML = `
+		<tr class="total-row">
+			<td colspan="4">Totaal wanden</td>
+			<td class="num">${fNum(totalWallArea)}</td>
+			<td class="num">${fNum(totalWallVol, 3)}</td>
+		</tr>`;
+
+	// ── Bill of Materials ─────────────────────────────────────────────────────
+	const layers = selectedWall?.layers ?? [];
+	const tbomBody = document.getElementById('tbody-bom')!;
+
+	if (layers.length === 0) {
+		tbomBody.innerHTML = `<tr><td colspan="9" class="muted center">Geen wandtype geselecteerd.</td></tr>`;
+		return;
+	}
+
+	// Bereken hoeveelheid per laag op basis van eenheid van het materiaal
+	function calcQty(l: LayerData, wallArea: number): { qty: number; unit: string } {
+		const unit = l.mat_unit ?? 'm²';
+		switch (unit) {
+			case 'm²':  return { qty: wallArea,                              unit: 'm²' };
+			case 'lm':  return { qty: wallArea / (l.thickness_mm / 1000),   unit: 'lm' };  // oppervlakte / dikte = lopende meter per m breedte (indicatief)
+			case 'm³':  return { qty: wallArea * (l.thickness_mm / 1000),   unit: 'm³' };
+			case 'kg':  return { qty: wallArea,                              unit: 'kg' }; // geen densiteit beschikbaar, toon als m² equivalent
+			default:    return { qty: wallArea,                              unit: unit };
+		}
+	}
+
+	let totalPrice = 0;
+	const bomRows = layers.map((l, i) => {
+		const { qty, unit } = calcQty(l, totalWallArea);
+		const price     = l.mat_price_per_unit !== null ? l.mat_price_per_unit * qty : null;
+		const currency  = l.mat_price_currency ?? 'EUR';
+		if (price !== null) totalPrice += price;
+
+		const supplierLink = l.mat_supplier_url
+			? `<a href="${l.mat_supplier_url}" target="_blank" rel="noopener" class="supplier-link">${l.mat_supplier ?? '↗'}</a>`
+			: (l.mat_supplier ?? '<span class="muted">—</span>');
+
+		return `<tr>
+			<td class="num muted">${l.position}</td>
+			<td class="bold">${l.name}</td>
+			<td>${l.mat_name ?? l.material}</td>
+			<td><span class="cat-badge cat-${l.mat_category ?? 'overig'}">${l.mat_category ?? '—'}</span></td>
+			<td class="num">${l.thickness_mm}</td>
+			<td class="num">${fNum(qty)} ${unit}</td>
+			<td class="num">${price !== null ? fNum(price) + ' ' + currency : '<span class="muted">—</span>'}</td>
+			<td>${supplierLink}</td>
+		</tr>`;
+	});
+
+	tbomBody.innerHTML = bomRows.join('');
+
+	// Totaalrij prijs
+	const tbomFoot = document.getElementById('tfoot-bom')!;
+	tbomFoot.innerHTML = `
+		<tr class="total-row">
+			<td colspan="6">Indicatieve materiaalprijs (excl. BTW, excl. arbeid)</td>
+			<td class="num">${totalPrice > 0 ? fNum(totalPrice) + ' EUR' : '<span class="muted">—</span>'}</td>
+			<td></td>
+		</tr>`;
+}
+
+function updateWallDisplay() {
+	(document.getElementById('val-wall-thickness') as HTMLElement).textContent =
+		selectedWall ? selectedWall.total_thickness_mm + ' mm' : '— mm';
+	(document.getElementById('val-wall-u') as HTMLElement).textContent =
+		selectedWall ? selectedWall.u_value.toFixed(2) : '—';
+}
+
+function refresh() {
+	updateMetrics();
+	updateWallDisplay();
+	updatePlan();
+	updateTables();
+	scheduleIfcReload();
+}
+
 function onSlider(id: string, valId: string, setter: (v: number) => void) {
-	const el = document.getElementById(id) as HTMLInputElement;
+	const el  = document.getElementById(id) as HTMLInputElement;
 	const lbl = document.getElementById(valId) as HTMLElement;
 	el.addEventListener('input', () => {
 		const v = parseInt(el.value, 10);
 		setter(v);
 		lbl.textContent = fmt(v);
-		updateMetrics();
-		rebuildBox();
+		refresh();
 	});
 }
 
@@ -188,34 +579,115 @@ onSlider('slider-width',  'val-width',  v => { widthMm  = v; });
 onSlider('slider-depth',  'val-depth',  v => { depthMm  = v; });
 onSlider('slider-height', 'val-height', v => { heightMm = v; });
 
-updateMetrics();
+const wallSelect = document.getElementById('select-wall') as HTMLSelectElement;
+wallSelect?.addEventListener('change', () => {
+	selectedWall = wallTypes.find(w => w.id === wallSelect.value) ?? wallTypes[0];
+	refresh();
+});
 
-// ─── IFC generator ───────────────────────────────────────────────────────────
+refresh();
+
+// ─── IFC generator ────────────────────────────────────────────────────────────
 function ifcGuid(): string {
-	const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$';
+	const c = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$';
 	let s = '';
-	for (let i = 0; i < 22; i++) s += chars[Math.floor(Math.random() * chars.length)];
+	for (let i = 0; i < 22; i++) s += c[Math.floor(Math.random() * c.length)];
 	return s;
 }
 
 function f(n: number): string {
-	// IFC expects real literals
 	return Number.isInteger(n) ? n.toFixed(1) : String(n);
 }
 
-function generateIFC(w: number, d: number, h: number): string {
-	const now = new Date().toISOString().slice(0, 19);
-	const hW = w / 2;
-	const hD = d / 2;
+// IFC STEP vereist ASCII-only strings. IfcOpenShell accepteert geen \X\ STEP-encoding.
+// Strategie: NFD-normaliseer → verwijder combinerende diakritische tekens → vervang
+// bekende symbolen door ASCII-equivalent → strip resterende niet-ASCII.
+function ifcStr(s: string): string {
+	return s
+		.normalize('NFD')
+		.replace(/[̀-ͯ]/g, '')  // verwijder combinerende accenten (é→e, ü→u, ...)
+		.replace(/×/g, 'x')               // U+00D7 maalteken → x
+		.replace(/[^\x00-\x7F]/g, '');    // strip eventuele resterende niet-ASCII tekens
+}
 
-	return [
-		'ISO-10303-21;',
-		'HEADER;',
-		`FILE_DESCRIPTION(('ViewDefinition[CoordinationView]'),'2;1');`,
-		`FILE_NAME('uitbouw.ifc','${now}',(''),(''),'Commonbuild Web Configurator','Commonbuild','');`,
-		`FILE_SCHEMA(('IFC4'));`,
-		'ENDSEC;',
-		'DATA;',
+// Build one IfcWall with swept-solid geometry and return [lines, wallEntityId, nextId]
+function buildIfcWall(
+	name: string,
+	// position of wall origin (bottom-left corner in plan)
+	px: number, py: number,
+	// wall runs along X (true) or Z (false)
+	alongX: boolean,
+	length: number,
+	height: number,
+	thickness: number,
+	startId: number,
+	repCtxId: number,   // #11
+	storeyPlacementId: number,  // #24 parent placement
+): [string[], number, number] {
+	let id = startId;
+	const lines: string[] = [];
+
+	// Local placement
+	const ptId   = id++;
+	const zDirId = id++;
+	const xDirId = id++;
+	const axId   = id++;
+	const placId = id++;
+
+	// IFC uses Z-up. For walls along X: localX=(1,0,0), localZ=(0,0,1), localY=(0,1,0→depth).
+	// For walls along Y (depth): localX=(0,1,0), localZ=(0,0,1), localY=(-1,0,0).
+	// Profile is in local XY plane, extruded along local Z (= up = height).
+	const xDir = alongX ? '(1.,0.,0.)' : '(0.,1.,0.)';
+	// Profile center: along-X walls → thickness goes in +localY (+depth) → cy = +t/2
+	//                 along-Y walls → thickness goes in +localY (-X)   → cy = -t/2 (wall body toward interior)
+	const profCY = alongX ? thickness / 2 : -thickness / 2;
+
+	lines.push(`#${ptId}=IFCCARTESIANPOINT((${f(px)},${f(py)},0.));`);
+	lines.push(`#${zDirId}=IFCDIRECTION((0.,0.,1.));`);   // local Z = global up
+	lines.push(`#${xDirId}=IFCDIRECTION(${xDir});`);
+	lines.push(`#${axId}=IFCAXIS2PLACEMENT3D(#${ptId},#${zDirId},#${xDirId});`);
+	lines.push(`#${placId}=IFCLOCALPLACEMENT(#${storeyPlacementId},#${axId});`);
+
+	// Profile: rectangle length × thickness, centre offset so body starts at origin corner
+	const profPtId  = id++;
+	const prof2dId  = id++;
+	const profId    = id++;
+	const extPtId   = id++;
+	const extZId    = id++;
+	const extXId    = id++;
+	const extAxId   = id++;
+	const extDirId  = id++;
+	const solidId   = id++;
+	const shapeRepId = id++;
+	const prodDefId = id++;
+
+	lines.push(`#${profPtId}=IFCCARTESIANPOINT((${f(length / 2)},${f(profCY)}));`);
+	lines.push(`#${prof2dId}=IFCAXIS2PLACEMENT2D(#${profPtId},$);`);
+	lines.push(`#${profId}=IFCRECTANGLEPROFILEDEF(.AREA.,$,#${prof2dId},${f(length)},${f(thickness)});`);
+	lines.push(`#${extPtId}=IFCCARTESIANPOINT((0.,0.,0.));`);
+	lines.push(`#${extZId}=IFCDIRECTION((0.,0.,1.));`);
+	lines.push(`#${extXId}=IFCDIRECTION((1.,0.,0.));`);
+	lines.push(`#${extAxId}=IFCAXIS2PLACEMENT3D(#${extPtId},#${extZId},#${extXId});`);
+	lines.push(`#${extDirId}=IFCDIRECTION((0.,0.,1.));`);
+	lines.push(`#${solidId}=IFCEXTRUDEDAREASOLID(#${profId},#${extAxId},#${extDirId},${f(height)});`);
+	lines.push(`#${shapeRepId}=IFCSHAPEREPRESENTATION(#${repCtxId},'Body','SweptSolid',(#${solidId}));`);
+
+	lines.push(`#${prodDefId}=IFCPRODUCTDEFINITIONSHAPE($,$,(#${shapeRepId}));`);
+
+	const wallId = id++;
+	lines.push(`#${wallId}=IFCWALL('${ifcGuid()}',$,'${ifcStr(name)}',$,$,#${placId},#${prodDefId},$);`);
+
+	return [lines, wallId, id];
+}
+
+function generateIFC(W: number, D: number, H: number): string {
+	const now      = new Date().toISOString().slice(0, 19);
+	const layers   = selectedWall?.layers ?? [];
+	const wallName = selectedWall?.name ?? 'Wand';
+	const t        = selectedWall?.total_thickness_mm ?? 200;
+
+	// ── Fixed header entities (1–17) ──────────────────────────────────────────
+	const header = [
 		`#1=IFCPROJECT('${ifcGuid()}',$,'Uitbouw',$,$,$,$,(#10),#5);`,
 		`#2=IFCSIUNIT(*,.LENGTHUNIT.,.MILLI.,.METRE.);`,
 		`#3=IFCSIUNIT(*,.AREAUNIT.,$,.SQUARE_METRE.);`,
@@ -233,28 +705,74 @@ function generateIFC(w: number, d: number, h: number): string {
 		`#15=IFCRELAGGREGATES('${ifcGuid()}',$,$,$,#1,(#12));`,
 		`#16=IFCRELAGGREGATES('${ifcGuid()}',$,$,$,#12,(#13));`,
 		`#17=IFCRELAGGREGATES('${ifcGuid()}',$,$,$,#13,(#14));`,
-		`#18=IFCBUILDINGELEMENTPROXY('${ifcGuid()}',$,'Uitbouw Volume',$,$,#24,#39,$,$);`,
-		`#19=IFCRELCONTAINEDINSPATIALSTRUCTURE('${ifcGuid()}',$,$,$,(#18),#14);`,
+		// Storey base placement — AXIS = Z-up (0,0,1), REF = X (1,0,0)
 		`#20=IFCCARTESIANPOINT((0.,0.,0.));`,
 		`#21=IFCDIRECTION((0.,0.,1.));`,
 		`#22=IFCDIRECTION((1.,0.,0.));`,
 		`#23=IFCAXIS2PLACEMENT3D(#20,#21,#22);`,
 		`#24=IFCLOCALPLACEMENT($,#23);`,
-		`#25=IFCCARTESIANPOINT((${f(hW)},${f(hD)}));`,
-		`#26=IFCAXIS2PLACEMENT2D(#25,$);`,
-		`#27=IFCRECTANGLEPROFILEDEF(.AREA.,$,#26,${f(w)},${f(d)});`,
-		`#28=IFCCARTESIANPOINT((0.,0.,0.));`,
-		`#29=IFCDIRECTION((0.,0.,1.));`,
-		`#30=IFCDIRECTION((1.,0.,0.));`,
-		`#31=IFCAXIS2PLACEMENT3D(#28,#29,#30);`,
-		`#32=IFCDIRECTION((0.,0.,1.));`,
-		`#33=IFCEXTRUDEDAREASOLID(#27,#31,#32,${f(h)});`,
-		`#34=IFCCOLOURRGB($,0.58,0.77,0.99);`,
-		`#35=IFCSURFACESTYLESHADING(#34,0.18);`,
-		`#36=IFCSURFACESTYLE('Uitbouw Volume',.BOTH.,(#35));`,
-		`#37=IFCSTYLEDITEM(#33,(#36),$);`,
-		`#38=IFCSHAPEREPRESENTATION(#11,'Body','SweptSolid',(#33));`,
-		`#39=IFCPRODUCTDEFINITIONSHAPE($,$,(#38));`,
+	];
+
+	// ── 4 walls ───────────────────────────────────────────────────────────────
+	let nextId = 200;
+	const wallLines: string[] = [];
+	const wallIds: number[] = [];
+
+	// Front wall  (z=0,  runs along X, full width)
+	{
+		const [lines, wId, nId] = buildIfcWall('Voorwand',  0, 0,      true,  W,       H, t, nextId, 11, 24);
+		wallLines.push(...lines); wallIds.push(wId); nextId = nId;
+	}
+	// Back wall   (z=D-t, runs along X, full width)
+	{
+		const [lines, wId, nId] = buildIfcWall('Achterwand', 0, D - t, true,  W,       H, t, nextId, 11, 24);
+		wallLines.push(...lines); wallIds.push(wId); nextId = nId;
+	}
+	// Left wall   (x=0,  runs along Z, fits between front and back)
+	{
+		const [lines, wId, nId] = buildIfcWall('Linkerwand', 0, t,     false, D - 2*t, H, t, nextId, 11, 24);
+		wallLines.push(...lines); wallIds.push(wId); nextId = nId;
+	}
+	// Right wall  (x=W-t, runs along Z, fits between front and back)
+	{
+		const [lines, wId, nId] = buildIfcWall('Rechterwand', W - t, t, false, D - 2*t, H, t, nextId, 11, 24);
+		wallLines.push(...lines); wallIds.push(wId); nextId = nId;
+	}
+
+	// Spatial containment for all 4 walls
+	const containId = nextId++;
+	wallLines.push(`#${containId}=IFCRELCONTAINEDINSPATIALSTRUCTURE('${ifcGuid()}',$,$,$,(${wallIds.map(i => '#' + i).join(',')}),#14);`);
+
+	// ── Material layer set (shared by all walls) ───────────────────────────────
+	const matLines: string[] = [];
+	const layerIds: number[] = [];
+
+	for (const layer of layers) {
+		const matId   = nextId++;
+		const layerId = nextId++;
+		matLines.push(`#${matId}=IFCMATERIAL('${ifcStr(layer.material)}',$,$);`);
+		matLines.push(`#${layerId}=IFCMATERIALLAYER(#${matId},${f(layer.thickness_mm)},$,'${ifcStr(layer.name)}',$,$,$);`);
+		layerIds.push(layerId);
+	}
+
+	const layerSetId = nextId++;
+	const relMatId   = nextId++;
+
+	// IfcMaterialLayerSet rechtstreeks koppelen aan alle wanden via IfcRelAssociatesMaterial
+	matLines.push(`#${layerSetId}=IFCMATERIALLAYERSET((${layerIds.map(i => '#' + i).join(',')}),'${ifcStr(wallName)}',$);`);
+	matLines.push(`#${relMatId}=IFCRELASSOCIATESMATERIAL('${ifcGuid()}',$,$,$,(${wallIds.map(i => '#' + i).join(',')}),#${layerSetId});`);
+
+	return [
+		'ISO-10303-21;',
+		'HEADER;',
+		`FILE_DESCRIPTION(('ViewDefinition[CoordinationView]'),'2;1');`,
+		`FILE_NAME('uitbouw.ifc','${now}',(''),(''),'Commonbuild Web Configurator','Commonbuild','');`,
+		`FILE_SCHEMA(('IFC4'));`,
+		'ENDSEC;',
+		'DATA;',
+		...header,
+		...wallLines,
+		...matLines,
 		'ENDSEC;',
 		'END-ISO-10303-21;',
 	].join('\n');
@@ -265,11 +783,11 @@ document.getElementById('btn-download')!.addEventListener('click', () => {
 	const blob    = new Blob([content], { type: 'application/x-step' });
 	const url     = URL.createObjectURL(blob);
 	const a       = document.createElement('a');
-	const wM      = (widthMm  / 1000).toFixed(1).replace('.', '-');
-	const dM      = (depthMm  / 1000).toFixed(1).replace('.', '-');
-	const hM      = (heightMm / 1000).toFixed(1).replace('.', '-');
-	a.href        = url;
-	a.download    = `uitbouw_${wM}x${dM}x${hM}.ifc`;
+	const wM = (widthMm  / 1000).toFixed(1).replace('.', '-');
+	const dM = (depthMm  / 1000).toFixed(1).replace('.', '-');
+	const hM = (heightMm / 1000).toFixed(1).replace('.', '-');
+	a.href     = url;
+	a.download = `uitbouw_${wM}x${dM}x${hM}.ifc`;
 	a.click();
 	URL.revokeObjectURL(url);
 });
@@ -284,13 +802,11 @@ document.getElementById('btn-download')!.addEventListener('click', () => {
 	margin-top: 1.5rem;
 }
 
-@media (max-width: 800px) {
-	.configurator-layout {
-		grid-template-columns: 1fr;
-	}
+@media (max-width: 860px) {
+	.configurator-layout { grid-template-columns: 1fr; }
 }
 
-/* ── Controls panel ── */
+/* ── Controls ── */
 .config-panel {
 	background: var(--sl-color-gray-7);
 	border: 1px solid var(--sl-color-gray-5);
@@ -307,9 +823,7 @@ document.getElementById('btn-download')!.addEventListener('click', () => {
 	padding: 0;
 }
 
-.control-group {
-	margin-bottom: 1.1rem;
-}
+.control-group { margin-bottom: 1.1rem; }
 
 .control-group label {
 	display: flex;
@@ -335,6 +849,24 @@ input[type='range'] {
 	cursor: pointer;
 }
 
+select {
+	width: 100%;
+	padding: 0.4rem 0.5rem;
+	background: var(--sl-color-gray-6);
+	border: 1px solid var(--sl-color-gray-4);
+	border-radius: 0.4rem;
+	color: var(--sl-color-white);
+	font-size: 0.85rem;
+	cursor: pointer;
+}
+
+.wall-meta {
+	margin-top: 0.25rem;
+	font-size: 0.7rem;
+	color: var(--sl-color-gray-4);
+	text-align: right;
+}
+
 .range-limits {
 	display: flex;
 	justify-content: space-between;
@@ -348,7 +880,7 @@ input[type='range'] {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 0.75rem;
-	margin: 1.25rem 0 1.25rem;
+	margin: 1.25rem 0;
 }
 
 .metric-card {
@@ -373,7 +905,7 @@ input[type='range'] {
 	margin-top: 0.2rem;
 }
 
-/* ── Download button ── */
+/* ── Download ── */
 .download-btn {
 	display: flex;
 	align-items: center;
@@ -391,15 +923,38 @@ input[type='range'] {
 	transition: background 0.15s;
 }
 
-.download-btn:hover {
-	background: var(--sl-color-accent-high);
-}
+.download-btn:hover { background: var(--sl-color-accent-high); }
 
 .hint {
 	margin: 0.75rem 0 0;
 	font-size: 0.72rem;
 	color: var(--sl-color-gray-4);
 	text-align: center;
+}
+
+/* ── Right column ── */
+.viewer-column {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+/* ── 2D plan ── */
+.plan-wrap {
+	background: #f8fafc;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.75rem;
+	padding: 0.5rem;
+	overflow: hidden;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.plan-wrap svg {
+	display: block;
+	max-width: 100%;
+	height: auto;
 }
 
 /* ── 3D viewer ── */
@@ -414,4 +969,94 @@ input[type='range'] {
 	display: block;
 	width: 100%;
 }
+
+/* ── Meetstaat & BOM ── */
+.quantities-section {
+	margin-top: 2.5rem;
+}
+
+.section-title {
+	font-size: 1.1rem;
+	font-weight: 700;
+	color: var(--sl-color-white);
+	margin: 0 0 0.25rem;
+	border: none;
+	padding: 0;
+}
+
+.section-desc {
+	font-size: 0.8rem;
+	color: var(--sl-color-gray-3);
+	margin: 0 0 0.9rem;
+}
+
+.qty-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.82rem;
+	color: var(--sl-color-gray-2);
+}
+
+.qty-table th,
+.qty-table td {
+	padding: 0.45rem 0.75rem;
+	border-bottom: 1px solid var(--sl-color-gray-6);
+	text-align: left;
+	vertical-align: middle;
+}
+
+.qty-table th {
+	background: var(--sl-color-gray-7);
+	font-weight: 700;
+	font-size: 0.75rem;
+	color: var(--sl-color-gray-3);
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.qty-table tbody tr:hover {
+	background: var(--sl-color-gray-7);
+}
+
+.qty-table tfoot tr.total-row td {
+	font-weight: 700;
+	color: var(--sl-color-white);
+	background: var(--sl-color-gray-6);
+	border-top: 2px solid var(--sl-color-gray-5);
+}
+
+.qty-table .num {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.qty-table .bold { font-weight: 600; color: var(--sl-color-white); }
+.qty-table .muted { color: var(--sl-color-gray-4); }
+.qty-table .center { text-align: center; }
+
+/* Category badges */
+.cat-badge {
+	display: inline-block;
+	padding: 0.15rem 0.5rem;
+	border-radius: 999px;
+	font-size: 0.7rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+.cat-bekleding  { background: #fef3c7; color: #92400e; }
+.cat-isolatie   { background: #d1fae5; color: #065f46; }
+.cat-structuur  { background: #dbeafe; color: #1e40af; }
+.cat-plaat      { background: #ede9fe; color: #4c1d95; }
+.cat-lat        { background: #fee2e2; color: #991b1b; }
+.cat-afwerking  { background: #f1f5f9; color: #334155; }
+.cat-overig     { background: var(--sl-color-gray-6); color: var(--sl-color-gray-3); }
+
+/* Supplier links */
+.supplier-link {
+	color: var(--sl-color-accent);
+	text-decoration: none;
+	font-size: 0.8rem;
+}
+.supplier-link:hover { text-decoration: underline; }
 </style>

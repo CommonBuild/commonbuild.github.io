@@ -1,0 +1,117 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Materials database — Commonbuild
+# ──────────────────────────────────────────────────────────────────────────────
+# Vlakke tabel: één rij per product. Gelinkt via material_id in layers.yaml.
+# Nieuw veld toevoegen = één nieuwe sleutel per record.
+#
+# Categorieën: bekleding | isolatie | structuur | plaat | lat | afwerking | overig
+# Eenheden:    m² | lm | m³ | kg | stuk
+# ──────────────────────────────────────────────────────────────────────────────
+
+- id: plato-vuren-londen
+  name: Plato Vuren Londen
+  category: bekleding
+  description: Thermisch gemodificeerde vurenhout gevelbekleding Londen-profiel. Duurzaamheidsklasse 1.
+  unit: m²
+  price_per_unit: 42.50
+  price_currency: EUR
+  ifc_material_name: Wood - Modified Spruce Cladding
+  supplier: Plato Wood
+  supplier_url: https://www.plato-wood.com
+  tags: [exterior, cladding, wood, thermally-modified]
+
+- id: vuren-lat-30x48
+  name: Vuren lat 30x48 mm
+  category: lat
+  description: Geimpregneerde vuren lat 30x48 mm voor kruis-latwerk geventileerde spouw.
+  unit: lm
+  price_per_unit: 1.85
+  price_currency: EUR
+  ifc_material_name: Wood - Spruce Batten
+  tags: [exterior, batten, wood, ventilated-facade]
+
+- id: steico-universal-35
+  name: Steico Universal 35mm
+  category: isolatie
+  description: Harde houtvezelplaat windscherm en isolerend sluitstuk. Lambda 0.038 W/mK. Diffusie-open.
+  unit: m²
+  price_per_unit: 18.90
+  price_currency: EUR
+  ifc_material_name: Wood Fibre Board - Steico Universal
+  supplier: Steico
+  supplier_url: https://www.steico.com/nl/producten/houtvezelplaten/steico-universal
+  tags: [exterior, insulation, wood-fibre, wind-barrier]
+
+- id: houtskelet-kvh45x140-steico-flex140
+  name: Houtskelet KVH 45x140 + Steico Flex 140
+  category: structuur
+  description: KVH 45x140 mm hart-op-hart 625mm gevuld met Steico Flex 140 houtvezelisolatie.
+  unit: m²
+  price_per_unit: 38.50
+  price_currency: EUR
+  ifc_material_name: Wood Frame with Insulation - KVH 45x140 Steico Flex 140
+  supplier: Eurabo
+  supplier_url: https://www.eurabo.be/nl/producten/kvh-vuren-pefc-nv
+  tags: [structural, insulation, timber-frame, composite]
+
+- id: osb3-15mm
+  name: OSB3 15mm tand-en-groef
+  category: plaat
+  description: OSB3 15mm tand-en-groef. Constructieve beplating en luchtdichtheidslaag.
+  unit: m²
+  price_per_unit: 12.80
+  price_currency: EUR
+  ifc_material_name: OSB3 Panel
+  tags: [structural, panel, osb, air-barrier]
+
+- id: techniekspouw-fermacell
+  name: Techniekspouw + Fermacell 12.5mm
+  category: afwerking
+  description: Techniekspouw op regelwerk voor leidingdoorvoer afgewerkt met Fermacell vezelgipsplaat 12.5mm.
+  unit: m²
+  price_per_unit: 34.00
+  price_currency: EUR
+  ifc_material_name: Service Void with Fermacell Lining
+  supplier: Fermacell
+  supplier_url: https://www.fermacell.be
+  tags: [interior, finish, service-void]
+
+- id: beton-c25-30
+  name: Gewapend beton C25/30
+  category: structuur
+  description: In-situ gestort gewapend beton C25/30 voor vloerplaten en dakplaten.
+  unit: m³
+  price_per_unit: 165.00
+  price_currency: EUR
+  ifc_material_name: Concrete - Cast In Situ C25/30
+  tags: [structural, concrete, cast-in-situ]
+
+- id: pir-200mm
+  name: PIR isolatie 200mm
+  category: isolatie
+  description: Polyisocyanuraat (PIR) dakisolatie 200mm. Lambda 0.022 W/mK. Geschikt voor warm dak.
+  unit: m²
+  price_per_unit: 48.00
+  price_currency: EUR
+  ifc_material_name: PIR Insulation 200mm
+  tags: [insulation, pir, flat-roof, thermal]
+
+- id: epdm-1-5mm
+  name: EPDM waterdichting 1.5mm
+  category: afwerking
+  description: EPDM rubber membrane 1.5mm voor waterdichte dakafwerking. Volledig verkleefd systeem.
+  unit: m²
+  price_per_unit: 28.00
+  price_currency: EUR
+  ifc_material_name: EPDM Membrane
+  tags: [waterproofing, epdm, flat-roof]
+
+- id: dampscherm-pe
+  name: Dampscherm PE-folie
+  category: overig
+  description: Polyethyleen dampscherm 0.2mm als dampremmer onder dakisolatie.
+  unit: m²
+  price_per_unit: 1.20
+  price_currency: EUR
+  ifc_material_name: Vapour Control Layer - PE
+  tags: [moisture-control, vapour-barrier, membrane]

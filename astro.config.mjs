@@ -1,9 +1,22 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import { readFileSync } from 'node:fs';
+import { load as yamlLoad } from 'js-yaml';
+
+/** Vite plugin: importeer *.yaml bestanden als JS-module (geen extra dependency). */
+const yamlPlugin = {
+	name: 'vite-yaml',
+	transform(_src, id) {
+		if (!id.endsWith('.yaml') && !id.endsWith('.yml')) return;
+		const parsed = yamlLoad(readFileSync(id, 'utf8'));
+		return { code: `export default ${JSON.stringify(parsed)};`, map: null };
+	},
+};
 
 export default defineConfig({
 	site: 'https://commonbuild.github.io',
+	vite: { plugins: [yamlPlugin] },
 	integrations: [
 		starlight({
 			title: 'Commonbuild',

@@ -1,21 +1,18 @@
 ---
-import { getCollection, getEntry } from 'astro:content';
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import LayerStack3D from '../../components/LayerStack3D.astro';
+import { getElements, getElementById } from '../../data/index.ts';
 
 export async function getStaticPaths() {
-	const elements = await getCollection('elements');
-	return elements.map((el) => ({ params: { slug: el.id } }));
+	return getElements().map(el => ({ params: { slug: el.id } }));
 }
 
 const { slug } = Astro.params;
-const element = await getEntry('elements', slug!);
+const element = getElementById(slug!);
 if (!element) return Astro.redirect('/elements/');
 
-const { data } = element;
-
 function fnClass(fn: string) {
-	if (fn.includes('finish')) return 'fn-finish';
+	if (fn.includes('finish'))     return 'fn-finish';
 	if (fn.includes('insulation')) return 'fn-insulation';
 	if (fn.includes('structural')) return 'fn-structural';
 	if (fn.includes('moisture') || fn.includes('vapour')) return 'fn-moisture';
@@ -23,38 +20,47 @@ function fnClass(fn: string) {
 	if (fn.includes('protection')) return 'fn-protection';
 	return 'fn-services';
 }
+
+// LayerStack3D verwacht het oude layer-formaat (name, material, thickness_mm, function)
+const layersForViewer = element.layers.map(l => ({
+	position:     l.position,
+	name:         l.name,
+	material:     l.material?.name ?? l.material_id ?? '',
+	thickness_mm: l.thickness_mm,
+	function:     l.function,
+}));
 ---
 
-<StarlightPage frontmatter={{ title: data.name, description: data.description }}>
-	<p><code>{data.ifc_class}</code></p>
-	<p>{data.description}</p>
+<StarlightPage frontmatter={{ title: element.name, description: element.description ?? element.name }}>
+	<p><code>{element.ifc_class}</code></p>
+	{element.description && <p>{element.description}</p>}
 
 	<div class="metrics">
 		<div class="metric-card">
-			<span class="value">{data.total_thickness_mm} mm</span>
+			<span class="value">{element.total_thickness_mm} mm</span>
 			<span class="label">Total thickness</span>
 		</div>
 		<div class="metric-card">
-			<span class="value">{data.u_value} W/m²K</span>
+			<span class="value">{element.u_value} W/m²K</span>
 			<span class="label">U-value</span>
 		</div>
 		<div class="metric-card">
-			<span class="value">{data.fire_rating}</span>
+			<span class="value">{element.fire_rating}</span>
 			<span class="label">Fire rating</span>
 		</div>
 		<div class="metric-card">
-			<span class="value">{data.layers.length}</span>
+			<span class="value">{element.layers.length}</span>
 			<span class="label">Layers</span>
 		</div>
 	</div>
 
 	<div>
-		{data.tags.map((tag) => <span class="tag">{tag}</span>)}
+		{element.tags.map(tag => <span class="tag">{tag}</span>)}
 	</div>
 
 	<h2>Layer Stack</h2>
 	<p>Listed from exterior (position 1) to interior. Layer thickness is drawn to scale.</p>
-	<LayerStack3D layers={data.layers} id={element.id} />
+	<LayerStack3D layers={layersForViewer} id={element.id} />
 	<div class="viewer-legend">
 		<div class="viewer-legend-item"><span class="viewer-legend-swatch" style="background:#4ade80"></span>Finish</div>
 		<div class="viewer-legend-item"><span class="viewer-legend-swatch" style="background:#fbbf24"></span>Insulation</div>
@@ -70,7 +76,7 @@ function fnClass(fn: string) {
 			<tr>
 				<th>#</th>
 				<th>Layer</th>
-				<th>Material</th>
+				<th>Product</th>
 				<th>Thickness</th>
 				<th>Function</th>
 				<th>Supplier</th>
@@ -78,21 +84,21 @@ function fnClass(fn: string) {
 			</tr>
 		</thead>
 		<tbody>
-			{data.layers.map((layer) => (
+			{element.layers.map(layer => (
 				<tr>
 					<td>{layer.position}</td>
 					<td>{layer.name}</td>
-					<td>{layer.material}</td>
+					<td>{layer.material?.name ?? layer.material_id ?? '—'}</td>
 					<td>{layer.thickness_mm > 0 ? `${layer.thickness_mm} mm` : '—'}</td>
 					<td><span class={`tag ${fnClass(layer.function)}`}>{layer.function}</span></td>
 					<td>
-						{layer.supplier && layer.supplier_url
-							? <a href={layer.supplier_url} target="_blank" rel="noopener">{layer.supplier}</a>
-							: layer.supplier ?? '—'}
+						{layer.material?.supplier_url
+							? <a href={layer.material.supplier_url} target="_blank" rel="noopener">{layer.material.supplier}</a>
+							: (layer.material?.supplier ?? '—')}
 					</td>
 					<td>
-						{layer.price != null
-							? `€${layer.price.toFixed(2)} ${layer.price_unit ?? ''}`
+						{layer.material?.price_per_unit != null
+							? `€${layer.material.price_per_unit.toFixed(2)} / ${layer.material.unit}`
 							: '—'}
 					</td>
 				</tr>

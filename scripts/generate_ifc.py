@@ -245,32 +245,76 @@ def generate_ifc(yaml_path: Path, output_path: Path) -> None:
 # Entry point
 # ---------------------------------------------------------------------------
 
+def load_database(repo_root: Path):
+    """Laad de drie YAML-databestanden en join ze tot een lijst van element-dicts
+    die compatibel zijn met de generate_ifc functie."""
+    data_dir = repo_root / "src" / "data"
+
+    with open(data_dir / "elements.yaml") as f:
+        elements = yaml.safe_load(f) or []
+    with open(data_dir / "layers.yaml") as f:
+        all_layers = yaml.safe_load(f) or []
+    with open(data_dir / "materials.yaml") as f:
+        all_materials = yaml.safe_load(f) or []
+
+    mat_by_id = {m["id"]: m for m in all_materials}
+
+    # Groepeer lagen per element_id en verrijk met materiaalnaam
+    layers_by_element: dict[str, list] = {}
+    for layer in all_layers:
+        eid = layer["element_id"]
+        mat = mat_by_id.get(layer.get("material_id", ""), {})
+        layers_by_element.setdefault(eid, []).append({
+            "position":     layer.get("position", 0),
+            "name":         layer.get("name", ""),
+            # material-veld = ifc_material_name uit DB, anders product-naam, anders material_id
+            "material":     mat.get("ifc_material_name") or mat.get("name") or layer.get("material_id", ""),
+            "thickness_mm": layer.get("thickness_mm", 0),
+            "function":     layer.get("function", ""),
+        })
+
+    # Sorteer lagen op positie
+    for eid in layers_by_element:
+        layers_by_element[eid].sort(key=lambda l: l["position"])
+
+    # Combineer tot generate_ifc-compatibele dicts
+    return [
+        {**el, "layers": layers_by_element.get(el["id"], [])}
+        for el in elements
+    ]
+
+
 def main() -> None:
     repo_root = Path(__file__).parent.parent
-    elements_dir = repo_root / "src" / "content" / "elements"
     ifc_dir = repo_root / "public" / "ifc"
 
-    yaml_files = sorted(
-        list(elements_dir.glob("**/*.yaml")) + list(elements_dir.glob("**/*.yml"))
-    )
+    elements = load_database(repo_root)
 
-    if not yaml_files:
-        print("No YAML element files found.")
+    if not elements:
+        print("No elements found in src/data/elements.yaml.")
         sys.exit(1)
 
-    print(f"Generating IFC files for {len(yaml_files)} element(s)…")
+    print(f"Generating IFC files for {len(elements)} element(s)…")
     errors = 0
 
-    for yaml_path in yaml_files:
-        stem = yaml_path.stem
+    for element_data in elements:
+        stem = element_data["id"]
         out = ifc_dir / f"{stem}.ifc"
+
+        # Schrijf tijdelijk naar een temp-dict die generate_ifc verwacht
+        import tempfile, json
+        tmp = Path(tempfile.mktemp(suffix=".yaml"))
         try:
-            generate_ifc(yaml_path, out)
+            with open(tmp, "w") as f:
+                yaml.dump(element_data, f, allow_unicode=True)
+            generate_ifc(tmp, out)
             print(f"  ✓  {out.relative_to(repo_root)}")
         except Exception as exc:
             print(f"  ✗  {stem}: {exc}")
             import traceback; traceback.print_exc()
             errors += 1
+        finally:
+            tmp.unlink(missing_ok=True)
 
     if errors:
         sys.exit(1)
